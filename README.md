@@ -31,5 +31,5 @@ claude plugin install pixel-pad --marketplace jgrugru/pixel-pad
 
 ## Limits
 
-- Terminal surface only.
+- Terminal and desktop only. It does not work in the VS Code extension; `/pixel-pad` there tells you to use a terminal.
 - One canvas size, 24 colors.
