@@ -212,3 +212,31 @@ export const sketchSvg = (sketch: Sketch): string => {
     : ''
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">${cols}${rows}${cells}${mark}</svg>`
 }
+
+const emojiSquares: { glyph: string; rgb: number[] }[] = [
+  { glyph: '\u2B1B', rgb: [0, 0, 0] },
+  { glyph: '\u2B1C', rgb: [255, 255, 255] },
+  { glyph: '\u{1F7E5}', rgb: [224, 49, 49] },
+  { glyph: '\u{1F7E7}', rgb: [240, 140, 0] },
+  { glyph: '\u{1F7E8}', rgb: [252, 196, 25] },
+  { glyph: '\u{1F7E9}', rgb: [47, 158, 68] },
+  { glyph: '\u{1F7E6}', rgb: [25, 113, 194] },
+  { glyph: '\u{1F7EA}', rgb: [156, 54, 181] },
+  { glyph: '\u{1F7EB}', rgb: [123, 74, 43] },
+]
+
+// The colored square emoji closest to a hex color; emoji keep their color on
+// a Button where plain styling does not.
+export const nearestEmoji = (hex: string): string => {
+  const rgb = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16))
+  let best = emojiSquares[0]
+  let bestDistance = Infinity
+  for (const sq of emojiSquares) {
+    const distance = sq.rgb.reduce((sum, v, i) => sum + (v - rgb[i]) ** 2, 0)
+    if (distance < bestDistance) {
+      best = sq
+      bestDistance = distance
+    }
+  }
+  return best.glyph
+}

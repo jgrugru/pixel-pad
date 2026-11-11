@@ -10,9 +10,7 @@ import {
   paletteNames,
   palette,
   sketchGrid,
-  sketchSvg,
-  svgCell,
-  svgMargin,
+  nearestEmoji,
   tools,
 } from './draw'
 import type { Sketch, Tool } from './draw'
@@ -89,9 +87,9 @@ export const register: Register = on => {
       return <Client key="canvas" module="./canvas.tsx" width="100%" height="100%" />
     }
 
-    // vscode and mobile have no Client and no pointer: show the drawing as an
-    // Svg with labeled axes, and paint by typing cells such as "c4" in the Input.
-    const { Box, Text, Button, Input, Select, Svg } = $.ui.resolve(e)
+    // vscode and mobile have no Client and no pointer: a grid of plain Buttons
+    // labeled with colored square emoji, one press paints one cell.
+    const { Box, Text, Button, Select } = $.ui.resolve(e)
     const current = await read($, sketch)
     const change = (fn: (s: Sketch) => Sketch) => () => {
       void update($, sketch, fn)
@@ -104,32 +102,25 @@ export const register: Register = on => {
     const setState = (fn: (s: Sketch) => Sketch) => () => {
       void update($, sketch, fn)
     }
-    const typed = (text: string) => {
-      const cells = [...text.toLowerCase().matchAll(/([a-p])(\d{1,2})/g)]
-        .map(m => [m[1].charCodeAt(0) - 97, Number(m[2]) - 1])
-        .filter(([x, y]) => y >= 0 && y < sketchGrid && x >= 0 && x < sketchGrid)
-      if (cells.length) change(s => cells.reduce((acc, [x, y]) => paint(acc, x, y), s))()
-    }
-
     return (
       <Box flexDirection="column">
-        <Svg
-          alt="Pixel art canvas"
-          source={sketchSvg(current)}
-          width={sketchGrid * svgCell + svgMargin}
-          height={sketchGrid * svgCell + svgMargin}
-        />
-        <Input
-          key="cells"
-          label="Cells"
-          placeholder={
-            current.start
-              ? 'Corner set. Type the opposite corner, e.g. h9'
-              : 'Type cells to paint, e.g. c4 d4 e5 (shapes: two corners)'
-          }
-          submitLabel="paint"
-          onSubmit={typed}
-        />
+        {current.start && (
+          <Text dimColor>
+            Corner set at {current.start[0] + 1},{current.start[1] + 1}. Click the opposite corner.
+          </Text>
+        )}
+        {Array.from({ length: sketchGrid }, (_, y) => (
+          <Box flexDirection="row" key={`row-${y}`}>
+            {Array.from({ length: sketchGrid }, (_, x) => (
+              <Button
+                key={`px-${x}-${y}`}
+                label={nearestEmoji(current.pixels[y * sketchGrid + x])}
+                plain
+                onPress={change(s => paint(s, x, y))}
+              />
+            ))}
+          </Box>
+        ))}
         <Box flexDirection="row" flexWrap="wrap">
           <Select
             key="color"

@@ -1,6 +1,6 @@
 {
   "name": "pixel-pad",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Draw pixel art in a pane beside the chat; your drawing goes to Claude with your next message.",
   "author": {
     "name": "jgrugru"
