@@ -1,8 +1,11 @@
 {
   "name": "pixel-pad",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Draw pixel art in a pane beside the chat; your drawing goes to Claude with your next message.",
-  "author": { "name": "jgrugru" },
+  "author": {
+    "name": "jgrugru"
+  },
   "repository": "https://github.com/jgrugru/pixel-pad",
-  "license": "MIT"
+  "license": "MIT",
+  "types": "./types/index.d.ts"
 }
