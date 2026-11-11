@@ -176,3 +176,39 @@ export const paint = (sketch: Sketch, x: number, y: number): Sketch => {
   for (const [px, py] of points) stamp(pixels, px, py, sketch.size, ink)
   return { ...sketch, pixels, start: null }
 }
+
+export const paletteNames = [
+  'Black', 'Charcoal', 'Gray', 'Silver', 'White', 'Dark brown', 'Brown', 'Tan',
+  'Peach', 'Red', 'Pink', 'Rose', 'Orange', 'Gold', 'Cream', 'Green', 'Mint',
+  'Teal', 'Blue', 'Sky', 'Navy', 'Purple', 'Lavender', 'Indigo',
+]
+
+export const svgCell = 20
+export const svgMargin = 24
+
+// The drawing as SVG: column letters across the top, row numbers down the left.
+export const sketchSvg = (sketch: Sketch): string => {
+  const size = sketchGrid * svgCell + svgMargin
+  const cells = sketch.pixels
+    .map((c, i) => {
+      const x = svgMargin + (i % sketchGrid) * svgCell
+      const y = svgMargin + Math.floor(i / sketchGrid) * svgCell
+      return `<rect x="${x}" y="${y}" width="${svgCell}" height="${svgCell}" fill="${c}" stroke="#adb5bd" stroke-width="0.5"/>`
+    })
+    .join('')
+  const text = 'font-family="sans-serif" font-size="11" fill="#868e96" text-anchor="middle"'
+  const cols = Array.from(
+    { length: sketchGrid },
+    (_, i) =>
+      `<text x="${svgMargin + i * svgCell + svgCell / 2}" y="16" ${text}>${String.fromCharCode(65 + i)}</text>`,
+  ).join('')
+  const rows = Array.from(
+    { length: sketchGrid },
+    (_, i) =>
+      `<text x="12" y="${svgMargin + i * svgCell + svgCell / 2 + 4}" ${text}>${i + 1}</text>`,
+  ).join('')
+  const mark = sketch.start
+    ? `<rect x="${svgMargin + sketch.start[0] * svgCell}" y="${svgMargin + sketch.start[1] * svgCell}" width="${svgCell}" height="${svgCell}" fill="none" stroke="#e03131" stroke-width="2"/>`
+    : ''
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">${cols}${rows}${cells}${mark}</svg>`
+}

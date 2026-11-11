@@ -1,7 +1,20 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
-import { blank, maxSize, minSize, newSketch, paint, palette, sketchGrid, tools } from './draw'
+import {
+  blank,
+  maxSize,
+  minSize,
+  newSketch,
+  paint,
+  paletteNames,
+  palette,
+  sketchGrid,
+  sketchSvg,
+  svgCell,
+  svgMargin,
+  tools,
+} from './draw'
 import type { Sketch, Tool } from './draw'
 import { encodePng } from './png'
 
@@ -33,12 +46,13 @@ const savePng = async (
 ): Promise<string | undefined> => {
   try {
     const path = `${cwd}/${outDir}/art.png`
+    const tmp = `${path}.${Date.now()}.b64`
     const png = encodePng(pixels, Math.sqrt(pixels.length), pngScale)
-    await $.fs.write(`${path}.b64`, png.toBase64())
+    await $.fs.write(tmp, png.toBase64())
     const { exitCode, stderr } = await $.process.run([
       'sh',
       '-c',
-      `base64 -d < "${path}.b64" > "${path}" && rm "${path}.b64"`,
+      `base64 -d < "${tmp}" > "${path}"; status=$?; rm -f "${tmp}"; exit $status`,
     ])
     if (exitCode !== 0) throw new Error(stderr)
     return path
@@ -75,8 +89,9 @@ export const register: Register = on => {
       return <Client key="canvas" module="./canvas.tsx" width="100%" height="100%" />
     }
 
-    // vscode and mobile have no Client: draw a clickable grid of Buttons.
-    const { Box, Text, Button } = $.ui.resolve(e)
+    // vscode and mobile have no Client and no pointer: show the drawing as an
+    // Svg with labeled axes, and paint by typing cells such as "c4" in the Input.
+    const { Box, Text, Button, Input, Select, Svg } = $.ui.resolve(e)
     const current = await read($, sketch)
     const change = (fn: (s: Sketch) => Sketch) => () => {
       void update($, sketch, fn)
@@ -89,35 +104,53 @@ export const register: Register = on => {
     const setState = (fn: (s: Sketch) => Sketch) => () => {
       void update($, sketch, fn)
     }
-    const swatch = (c: string, label: string) => <Text backgroundColor={c}>{label}</Text>
-    const isHeld = (tool: Tool) => current.tool === tool
+    const typed = (text: string) => {
+      const cells = [...text.toLowerCase().matchAll(/([a-p])(\d{1,2})/g)]
+        .map(m => [m[1].charCodeAt(0) - 97, Number(m[2]) - 1])
+        .filter(([x, y]) => y >= 0 && y < sketchGrid && x >= 0 && x < sketchGrid)
+      if (cells.length) change(s => cells.reduce((acc, [x, y]) => paint(acc, x, y), s))()
+    }
 
     return (
       <Box flexDirection="column">
+        <Svg
+          alt="Pixel art canvas"
+          source={sketchSvg(current)}
+          width={sketchGrid * svgCell + svgMargin}
+          height={sketchGrid * svgCell + svgMargin}
+        />
+        <Input
+          key="cells"
+          label="Cells"
+          placeholder={
+            current.start
+              ? 'Corner set. Type the opposite corner, e.g. h9'
+              : 'Type cells to paint, e.g. c4 d4 e5 (shapes: two corners)'
+          }
+          submitLabel="paint"
+          onSubmit={typed}
+        />
         <Box flexDirection="row" flexWrap="wrap">
-          {palette.map(c => (
-            <Button
-              key={`color-${c}`}
-              label={`Color ${c}`}
-              onPress={setState(s => ({
+          <Select
+            key="color"
+            label="Color"
+            value={current.color}
+            options={palette.map((c, i) => ({ value: c, label: `${paletteNames[i]} ${c}` }))}
+            onSelect={c =>
+              void update($, sketch, s => ({
                 ...s,
                 color: c,
                 tool: s.tool === 'eraser' ? 'pen' : s.tool,
-              }))}
-            >
-              {swatch(c, c === current.color && current.tool !== 'eraser' ? '[]' : '  ')}
-            </Button>
-          ))}
-        </Box>
-        <Box flexDirection="row" flexWrap="wrap">
-          {tools.map(t => (
-            <Button
-              key={`tool-${t.tool}`}
-              label={isHeld(t.tool) ? `[${t.label}]` : t.label}
-              variant={isHeld(t.tool) ? 'primary' : 'secondary'}
-              onPress={setState(s => ({ ...s, tool: t.tool, start: null }))}
-            />
-          ))}
+              }))
+            }
+          />
+          <Select
+            key="tool"
+            label="Tool"
+            value={current.tool}
+            options={tools.map(t => ({ value: t.tool, label: t.label }))}
+            onSelect={t => void update($, sketch, s => ({ ...s, tool: t as Tool, start: null }))}
+          />
         </Box>
         <Box flexDirection="row" flexWrap="wrap">
           <Button
@@ -146,24 +179,6 @@ export const register: Register = on => {
             }))}
           />
         </Box>
-        {current.start && (
-          <Text dimColor>
-            Corner set at {current.start[0]},{current.start[1]}. Click the opposite corner.
-          </Text>
-        )}
-        {Array.from({ length: sketchGrid }, (_, y) => (
-          <Box flexDirection="row" key={`row-${y}`}>
-            {Array.from({ length: sketchGrid }, (_, x) => (
-              <Button
-                key={`px-${x}-${y}`}
-                label={`Pixel ${x},${y}`}
-                onPress={change(s => paint(s, x, y))}
-              >
-                {swatch(current.pixels[y * sketchGrid + x], '  ')}
-              </Button>
-            ))}
-          </Box>
-        ))}
       </Box>
     )
   })
