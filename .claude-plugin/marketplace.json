@@ -1,0 +1,6 @@
+{
+  "name": "jgrugru-plugins",
+  "owner": { "name": "jgrugru" },
+  "description": "Plugins by jgrugru.",
+  "plugins": [{ "name": "pixel-pad", "source": "./" }]
+}
