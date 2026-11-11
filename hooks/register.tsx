@@ -3,7 +3,7 @@ import type { Register } from 'claude-code'
 import { encodePng } from './png'
 
 const paneId = 'pixel-pad'
-const pngScale = 8
+const pngScale = 12
 const outDir = '.pixel-pad'
 const hexColor = /^#[0-9a-f]{6}$/
 
@@ -34,7 +34,7 @@ export const register: Register = on => {
   })
 
   on('command.run', { command: 'pixel-pad' }, async $ => {
-    await $.ui.open({ id: paneId, title: 'Pixel pad' })
+    await $.ui.open({ id: paneId, title: 'Pixel pad', rows: 19, columns: 48 })
 
     return { text: 'Pixel pad opened.' }
   })
@@ -42,7 +42,7 @@ export const register: Register = on => {
   on('ui.render', { component: 'Pane', requestId: paneId }, async ($, e) => {
     const { Client } = $.ui.resolve(e)
 
-    return <Client key="canvas" module="./canvas.tsx" width={48} height={28} />
+    return <Client key="canvas" module="./canvas.tsx" width="100%" height="100%" />
   })
 
   // The canvas posts its pixels after each stroke; keep the PNG current.
